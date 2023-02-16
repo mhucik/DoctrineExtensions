@@ -269,6 +269,56 @@ final class SortableGroupTest extends BaseTestCaseORM
         static::assertSame(2, $freshPreviousItem->getPosition());
     }
 
+    public function testChangeGroupOfMoreNodes(): void
+    {
+        $category = new Category();
+        $category->setName('Item category');
+        $this->em->persist($category);
+
+        $item = new Item();
+        $item->setName('Item1');
+        $this->em->persist($item);
+
+        $item2 = new Item();
+        $item2->setName('Item2');
+        $this->em->persist($item2);
+
+        $item3 = new Item();
+        $item3->setName('Item3');
+        $this->em->persist($item3);
+
+        $item4 = new Item();
+        $item4->setName('Item4');
+        $this->em->persist($item4);
+
+        $this->em->flush();
+
+        static::assertSame(1, $item2->getPosition());
+        static::assertSame(3, $item4->getPosition());
+
+        $repoCategory = $this->em->getRepository(self::CATEGORY);
+        $repoItem = $this->em->getRepository(self::ITEM);
+
+        $itemCategory = $repoCategory->findOneBy(['name' => 'Item category']);
+
+        $item2->setCategory($itemCategory);
+        $item3->setCategory($itemCategory);
+        $this->em->flush();
+
+        $itemsWithCategory = $repoItem->findBy(['category' => $itemCategory], ['position' => 'asc']);
+        $itemsWithoutCategory = $repoItem->findBy(['category' => null], ['position' => 'asc']);
+
+        static::assertSame(0, $itemsWithCategory[0]->getPosition());
+        static::assertSame('Item2', $itemsWithCategory[0]->getName());
+        static::assertSame(1, $itemsWithCategory[1]->getPosition());
+        static::assertSame('Item3', $itemsWithCategory[1]->getName());
+
+        static::assertSame(0, $itemsWithoutCategory[0]->getPosition());
+        static::assertSame('Item1', $itemsWithoutCategory[0]->getName());
+        static::assertSame(1, $itemsWithoutCategory[1]->getPosition());
+        static::assertSame('Item4', $itemsWithoutCategory[1]->getName());
+    }
+
     protected function getUsedEntityFixtures(): array
     {
         return [
